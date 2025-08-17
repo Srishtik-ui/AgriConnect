@@ -1,0 +1,2435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriConnect - Complete Agricultural Platform</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #5f27cd 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background particles */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); }
+            100% { transform: translateY(-100vh) rotate(360deg); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .header h1 {
+            font-size: 3.5em;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #fff, #f1c40f, #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .header p {
+            font-size: 1.4em;
+            opacity: 0.95;
+            font-weight: 300;
+        }
+
+        .main-nav {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .nav-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .nav-card:hover::before {
+            left: 100%;
+        }
+
+        .nav-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .nav-card i {
+            font-size: 3.5em;
+            background: linear-gradient(45deg, #f1c40f, #e67e22, #f39c12);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-card:hover i {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .nav-card h3 {
+            color: white;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .nav-card p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .content-area {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+            display: none;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .content-area.active {
+            display: block;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #2c3e50;
+        }
+
+        .section-header h2 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Weather Widget Styles */
+        .weather-widget {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(116, 185, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .weather-widget::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: weatherFloat 8s ease-in-out infinite;
+        }
+
+        @keyframes weatherFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-20px, -20px) rotate(180deg); }
+        }
+
+        .weather-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .weather-temp {
+            font-size: 3.5em;
+            font-weight: 300;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .weather-icon {
+            font-size: 4em;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .weather-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .weather-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .weather-item i {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .weather-location {
+            margin-bottom: 20px;
+        }
+
+        .location-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .location-input input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+            min-width: 200px;
+        }
+
+        .location-input input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* AI Recommendations */
+        .ai-recommendations {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-recommendations::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transform: translate(30px, -30px);
+        }
+
+        .ai-recommendations h4 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .recommendation-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Enhanced Chat Styles */
+        .chat-container {
+            height: 500px;
+            border: 2px solid #e0e6ed;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            background: white;
+        }
+
+        .chat-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-status {
+            width: 10px;
+            height: 10px;
+            background: #2ecc71;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+            scroll-behavior: smooth;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 20px;
+            max-width: 85%;
+            animation: messageSlide 0.4s ease-out;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            white-space: pre-wrap;
+        }
+
+        @keyframes messageSlide {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .user-message {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            margin-left: auto;
+            text-align: right;
+            border-bottom-right-radius: 5px;
+        }
+
+        .bot-message {
+            background: white;
+            color: #2c3e50;
+            border: 1px solid #e0e6ed;
+            border-bottom-left-radius: 5px;
+            position: relative;
+        }
+
+        .bot-message::before {
+            content: '🤖';
+            position: absolute;
+            left: -10px;
+            top: -5px;
+            background: white;
+            padding: 5px;
+            border-radius: 50%;
+            border: 2px solid #667eea;
+            font-size: 12px;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #667eea;
+            font-style: italic;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e6ed;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e6ed;
+            border-radius: 25px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .quick-replies {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .quick-reply-btn {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .quick-reply-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        .ai-status {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+
+        .ai-status.online {
+            color: #2ecc71;
+        }
+
+        .ai-status.offline {
+            color: #e74c3c;
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.95em;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e0e6ed;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            background: white;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            margin: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: linear-gradient(135deg, #f8f9fa, #ffffff);
+            padding: 25px;
+            border-radius: 15px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .back-btn {
+            background: linear-gradient(45deg, #6c757d, #495057);
+            margin-bottom: 25px;
+        }
+
+        /* Government Hub Specific Styles */
+        .schemes-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .schemes-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+            align-items: end;
+        }
+
+        .schemes-controls select, .schemes-controls input, .schemes-controls button {
+            padding: 12px 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .schemes-controls button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .schemes-controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        #schemesResult {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e0e6ed;
+            margin-top: 20px;
+            min-height: 100px;
+        }
+
+        /* Banking Section Specific Styles */
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .controls h3 {
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controls input {
+            padding: 15px 20px;
+            border: 2px solid #e0e6ed;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            min-width: 300px;
+        }
+
+        .controls input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .controls button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            align-self: flex-start;
+        }
+
+        .controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Banking Result Styles */
+        #bankingResult {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            min-height: 100px;
+        }
+
+        /* Accordion Styles for Banking */
+        .accordion {
+            background: #f4f4f4;
+            color: #333;
+            cursor: pointer;
+            padding: 15px 20px;
+            width: 100%;
+            text-align: left;
+            border: none;
+            outline: none;
+            transition: all 0.3s ease;
+            margin: 5px 0;
+            font-weight: bold;
+            border-radius: 10px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .accordion:hover {
+            background: #e9ecef;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .accordion.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .accordion::after {
+            content: '\f078';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            font-size: 14px;
+            transition: transform 0.3s ease;
+        }
+
+        .accordion.active::after {
+            transform: rotate(180deg);
+        }
+
+        .panel {
+            padding: 20px;
+            display: none;
+            background: white;
+            border: 1px solid #e0e6ed;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+            line-height: 1.6;
+        }
+
+        .panel.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        /* Marketplace Map Styles */
+        #map, #govMap { 
+            height: 450px; 
+            width: 100%; 
+            margin: 20px 0; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2); 
+        }
+
+        .marketplace-controls { 
+            margin: 20px 0; 
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .marketplace-controls input, .marketplace-controls select, .marketplace-controls button { 
+            padding: 12px 15px; 
+            margin: 5px; 
+            border-radius: 8px; 
+            border: 2px solid #e0e6ed;
+            font-size: 16px;
+            min-width: 200px;
+        }
+
+        .marketplace-controls button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: auto;
+            padding: 12px 20px;
+        }
+
+        .marketplace-controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .marketplace-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .marketplace-header h3 {
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .marketplace-header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2.5em;
+            }
+            
+            .main-nav {
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+            }
+
+            .content-area {
+                padding: 25px;
+            }
+
+            .chat-container {
+                height: 400px;
+            }
+
+            .message {
+                max-width: 95%;
+            }
+
+            .weather-main {
+                flex-direction: column;
+                text-align: center;
+                gap: 20px;
+            }
+
+            .marketplace-controls, .schemes-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .marketplace-controls input, .marketplace-controls select, .marketplace-controls button,
+            .schemes-controls input, .schemes-controls select, .schemes-controls button {
+                min-width: auto;
+                width: 100%;
+            }
+
+            .controls {
+                padding: 20px;
+            }
+
+            .controls input {
+                min-width: auto;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation" id="bgAnimation"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-leaf"></i> AgriConnect</h1>
+            <p>Your Complete Smart Agricultural Platform powered by Mistral AI</p>
+        </div>
+
+        <!-- Main Navigation -->
+        <div id="main-menu" class="main-nav">
+            <div class="nav-card" onclick="showSection('chatbot')">
+                <i class="fas fa-robot"></i>
+                <h3>Mistral AI Assistant</h3>
+                <p>Get intelligent answers powered by advanced Mistral Small 3.2 with multilingual agricultural expertise</p>
+            </div>
+            
+            <div class="nav-card" onclick="showSection('weather')">
+                <i class="fas fa-cloud-sun"></i>
+                <h3>Weather Intelligence</h3>
+                <p>Real-time weather forecasting with AI-powered agricultural insights and crop recommendations</p>
+            </div>
+            
+            <div class="nav-card" onclick="showSection('schemes')">
+                <i class="fas fa-hands-helping"></i>
+                <h3>Government Hub</h3>
+                <p>Interactive government schemes finder with location mapping and detailed information</p>
+            </div>
+            
+            <div class="nav-card" onclick="showSection('banking')">
+                <i class="fas fa-university"></i>
+                <h3>Banking & Loans</h3>
+                <p>Find farmer loan schemes & nearby banks in your area with comprehensive information</p>
+            </div>
+            
+            <div class="nav-card" onclick="showSection('marketplace')">
+                <i class="fas fa-store"></i>
+                <h3>Digital Marketplace</h3>
+                <p>Find nearby agricultural stores, markets, banks, and essential services with navigation</p>
+            </div>
+            
+            <div class="nav-card" onclick="showSection('crop-bidding')">
+                <i class="fas fa-gavel"></i>
+                <h3>Smart Bidding</h3>
+                <p>Transparent crop auction platform with real-time price discovery</p>
+            </div>
+        </div>
+
+        <!-- AI Chatbot Section -->
+        <div id="chatbot" class="content-area">
+            <button class="btn back-btn" onclick="showMain()"><i class="fas fa-arrow-left"></i> Back to Main Menu</button>
+            <div class="section-header">
+                <h2><i class="fas fa-robot"></i> Mistral AI Agricultural Assistant</h2>
+                <p>Powered by advanced Mistral Small 3.2 - Ask me anything about farming, crops, weather, or agricultural practices in your preferred language</p>
+            </div>
+            
+            <div class="grid-2">
+                <div>
+                    <h3>Language & Settings</h3>
+                    <div class="form-group">
+                        <label>Select Language</label>
+                        <select id="chatLanguage" onchange="onLanguageChange()">
+                            <option value="en">🇺🇸 English</option>
+                            <option value="hi">🇮🇳 हिन्दी (Hindi)</option>
+                            <option value="bn">🇧🇩 বাংলা (Bengali)</option>
+                            <option value="te">🇮🇳 తెలుగు (Telugu)</option>
+                            <option value="ta">🇮🇳 தமிழ் (Tamil)</option>
+                            <option value="mr">🇮🇳 मराठी (Marathi)</option>
+                            <option value="gu">🇮🇳 ગુજરાતી (Gujarati)</option>
+                            <option value="pa">🇮🇳 ਪੰਜਾਬੀ (Punjabi)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Your Location (Optional)</label>
+                        <input type="text" id="userLocation" placeholder="Enter your city/state for localized advice">
+                    </div>
+                </div>
+                <div>
+                    <h3>Quick Topics</h3>
+                    <div class="quick-replies">
+                        <button class="btn" onclick="quickChat('crop diseases and treatment')">🦠 Diseases</button>
+                        <button class="btn" onclick="quickChat('fertilizer recommendations')">🌿 Fertilizers</button>
+                        <button class="btn" onclick="quickChat('irrigation best practices')">💧 Irrigation</button>
+                        <button class="btn" onclick="quickChat('pest management solutions')">🛡️ Pest Control</button>
+                        <button class="btn" onclick="quickChat('crop rotation strategies')">🔄 Rotation</button>
+                        <button class="btn" onclick="quickChat('market prices and trends')">📈 Market Info</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="chat-status"></div>
+                    <strong>Mistral AI Assistant</strong>
+                    <span class="ai-status online" id="aiStatus">🤖 Mistral AI Connected</span>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot-message">
+                        <strong>Mistral AI:</strong> नमस्ते! Welcome to AgriConnect! I'm powered by Mistral Small 3.2 with comprehensive knowledge about Indian agriculture, farming practices, crops, weather, and rural development. I can communicate in multiple Indian languages. How can I help you today?
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" class="chat-input" id="chatInput" placeholder="Ask me about crops, weather, diseases, fertilizers, market prices in any Indian language..." onkeypress="handleChatKeyPress(event)">
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weather Intelligence Section -->
+        <div id="weather" class="content-area">
+            <button class="btn back-btn" onclick="showMain()"><i class="fas fa-arrow-left"></i> Back to Main Menu</button>
+            <div class="section-header">
+                <h2><i class="fas fa-cloud-sun"></i> Weather Intelligence Center</h2>
+                <p>Real-time weather forecasting with AI-powered agricultural insights</p>
+            </div>
+
+            <div class="weather-location">
+                <div class="location-input">
+                    <input type="text" id="cityInput" placeholder="Enter city name (e.g., Mumbai, Delhi, Kolkata)" value="Siliguri">
+                    <button class="btn" onclick="updateWeatherLocation()"><i class="fas fa-search"></i> Get Weather</button>
+                    <button class="btn" onclick="getCurrentLocation()"><i class="fas fa-location-arrow"></i> Use My Location</button>
+                </div>
+            </div>
+
+            <div id="weatherWidget" class="weather-widget">
+                <div class="weather-main">
+                    <div>
+                        <div style="font-size: 1.2em; margin-bottom: 10px;" id="weatherLocation">Loading...</div>
+                        <div class="weather-temp" id="weatherTemp">--°C</div>
+                        <div id="weatherDescription">Getting weather data...</div>
+                    </div>
+                    <div class="weather-icon" id="weatherIcon">🌤️</div>
+                </div>
+                
+                <div class="weather-details" id="weatherDetails">
+                    <div class="weather-item">
+                        <i class="fas fa-thermometer-half"></i>
+                        <div>Feels Like</div>
+                        <div id="feelsLike">--°C</div>
+                    </div>
+                    <div class="weather-item">
+                        <i class="fas fa-tint"></i>
+                        <div>Humidity</div>
+                        <div id="humidity">--%</div>
+                    </div>
+                    <div class="weather-item">
+                        <i class="fas fa-wind"></i>
+                        <div>Wind Speed</div>
+                        <div id="windSpeed">-- km/h</div>
+                    </div>
+                    <div class="weather-item">
+                        <i class="fas fa-eye"></i>
+                        <div>Visibility</div>
+                        <div id="visibility">-- km</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="aiRecommendations" class="ai-recommendations">
+                <h4><i class="fas fa-brain"></i> AI Agricultural Recommendations</h4>
+                <div id="recommendationContent">
+                    <div class="loading-spinner"></div> Getting AI recommendations based on current weather conditions...
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Government Schemes Hub -->
+        <div id="schemes" class="content-area">
+            <button class="btn back-btn" onclick="showMain()"><i class="fas fa-arrow-left"></i> Back to Main Menu</button>
+            <div class="section-header">
+                <h2><i class="fas fa-hands-helping"></i> Government Schemes Hub</h2>
+                <p>Interactive government schemes finder with location mapping and detailed information</p>
+            </div>
+            
+            <!-- Nearby Location Finder -->
+            <div class="schemes-container">
+                <h3>📍 Nearby Government Offices & Services</h3>
+                <p>Find government offices, banks, and agricultural services near you with navigation</p>
+                
+                <div class="schemes-controls">
+                    <div>
+                        <label>Search Location</label>
+                        <input type="text" id="govLocationInput" placeholder="Enter location (e.g., Delhi)">
+                    </div>
+                    <div>
+                        <label>Your Starting Point</label>
+                        <input type="text" id="govStartLocation" placeholder="Your location (e.g., Haldia)">
+                    </div>
+                    <div>
+                        <label>Service Type</label>
+                        <select id="govCategorySelect">
+                            <option value="government">🏛️ Government Offices</option>
+                            <option value="bank">🏦 Banks</option>
+                            <option value="post_office">📮 Post Offices</option>
+                            <option value="police">👮 Police Stations</option>
+                            <option value="hospital">🏥 Hospitals</option>
+                            <option value="school">🏫 Schools</option>
+                            <option value="custom">✏️ Custom Service</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Custom Service (if selected)</label>
+                        <input type="text" id="govCustomCategory" placeholder="e.g., agricultural office">
+                    </div>
+                    <div style="display: flex; align-items: end;">
+                        <button onclick="searchGovPlaces()">🔍 Search Places</button>
+                    </div>
+                </div>
+
+                <div id="govMap"></div>
+            </div>
+
+            <!-- Government Schemes Finder -->
+            <div class="schemes-container">
+                <h3>🌾 Government Schemes Finder</h3>
+                <p>Find government schemes for farmers (national + state-specific + custom needs)</p>
+                
+                <div class="schemes-controls">
+                    <div>
+                        <label>Select State/Region</label>
+                        <select id="stateSelect">
+                            <option value="all">🇮🇳 All India (National Schemes)</option>
+                            <option value="Andhra Pradesh">Andhra Pradesh</option>
+                            <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                            <option value="Assam">Assam</option>
+                            <option value="Bihar">Bihar</option>
+                            <option value="Chhattisgarh">Chhattisgarh</option>
+                            <option value="Goa">Goa</option>
+                            <option value="Gujarat">Gujarat</option>
+                            <option value="Haryana">Haryana</option>
+                            <option value="Himachal Pradesh">Himachal Pradesh</option>
+                            <option value="Jharkhand">Jharkhand</option>
+                            <option value="Karnataka">Karnataka</option>
+                            <option value="Kerala">Kerala</option>
+                            <option value="Madhya Pradesh">Madhya Pradesh</option>
+                            <option value="Maharashtra">Maharashtra</option>
+                            <option value="Manipur">Manipur</option>
+                            <option value="Meghalaya">Meghalaya</option>
+                            <option value="Mizoram">Mizoram</option>
+                            <option value="Nagaland">Nagaland</option>
+                            <option value="Odisha">Odisha</option>
+                            <option value="Punjab">Punjab</option>
+                            <option value="Rajasthan">Rajasthan</option>
+                            <option value="Sikkim">Sikkim</option>
+                            <option value="Tamil Nadu">Tamil Nadu</option>
+                            <option value="Telangana">Telangana</option>
+                            <option value="Tripura">Tripura</option>
+                            <option value="Uttar Pradesh">Uttar Pradesh</option>
+                            <option value="Uttarakhand">Uttarakhand</option>
+                            <option value="West Bengal">West Bengal</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Specific Need (Optional)</label>
+                        <input type="text" id="customQuery" placeholder="e.g., crop insurance, subsidy, loan, organic farming">
+                    </div>
+                    <div style="display: flex; align-items: end;">
+                        <button onclick="fetchSchemes()">📋 Get Schemes</button>
+                    </div>
+                </div>
+
+                <div id="schemesResult">
+                    <p>Select a state and click "Get Schemes" to find relevant government programs for farmers.</p>
+                </div>
+            </div>
+
+            <!-- Popular Schemes Quick Access -->
+            <div class="schemes-container">
+                <h3>🔥 Popular Schemes Quick Access</h3>
+                <div class="grid-3">
+                    <div class="card">
+                        <h4>🌾 PM-KISAN</h4>
+                        <p><strong>₹6,000 per year</strong> - Direct income support to farmers</p>
+                        <button class="btn" onclick="getSchemeDetails('PM-KISAN Samman Nidhi')">Learn More</button>
+                    </div>
+                    <div class="card">
+                        <h4>💳 Kisan Credit Card</h4>
+                        <p><strong>Up to ₹3 lakh</strong> at 4% interest rate</p>
+                        <button class="btn" onclick="getSchemeDetails('Kisan Credit Card')">Learn More</button>
+                    </div>
+                    <div class="card">
+                        <h4>🛡️ Crop Insurance</h4>
+                        <p><strong>PMFBY</strong> - Comprehensive crop insurance scheme</p>
+                        <button class="btn" onclick="getSchemeDetails('Pradhan Mantri Fasal Bima Yojana')">Learn More</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Banking Section -->
+        <div id="banking" class="content-area">
+            <button class="btn back-btn" onclick="showMain()"><i class="fas fa-arrow-left"></i> Back to Main Menu</button>
+            <div class="section-header">
+                <h2><i class="fas fa-university"></i> Banking & Agricultural Loans</h2>
+                <p>Find farmer loan schemes & nearby banks in your area with comprehensive information</p>
+            </div>
+            
+            <!-- Banking & Loans Section -->
+            <div class="controls">
+                <h3>💰 Banking & Loans</h3>
+                <p>Find farmer loan schemes & nearby banks in your area</p>
+
+                <input type="text" id="bankState" placeholder="Enter your state/city (e.g., Patna, Bihar)">
+                <button onclick="fetchLoansAndBanks()">Get Banking & Loan Info</button>
+            </div>
+
+            <div id="bankingResult"></div>
+        </div>
+
+        <!-- Marketplace Section -->
+        <div id="marketplace" class="content-area">
+            <button class="btn back-btn" onclick="showMain()"><i class="fas fa-arrow-left"></i> Back to Main Menu</button>
+            <div class="section-header">
+                <h2><i class="fas fa-store"></i> Digital Agriculture Marketplace</h2>
+                <p>Find nearby agricultural stores, markets, banks, and essential services with navigation</p>
+            </div>
+            
+            <div class="marketplace-header">
+                <h3>🗺️ Nearby Places Finder</h3>
+                <p>Discover agricultural services and facilities near you with turn-by-turn navigation</p>
+            </div>
+            
+            <div class="marketplace-controls">
+                <input type="text" id="locationInput" placeholder="Enter search location (e.g., Delhi)">
+                <input type="text" id="startLocation" placeholder="Enter your starting location (e.g., Haldia)">
+                
+                <select id="categorySelect">
+                    <option value="bank">🏦 Banks</option>
+                    <option value="shop">🛏️ Shops</option>
+                    <option value="government">🏛️ Govt Offices</option>
+                    <option value="hospital">🏥 Hospitals</option>
+                    <option value="school">🏫 Schools</option>
+                    <option value="restaurant">🍴 Restaurants</option>
+                    <option value="fuel">⛽ Fuel Stations</option>
+                    <option value="marketplace">🛒 Markets</option>
+                    <option value="veterinary">🐄 Veterinary</option>
+                    <option value="pharmacy">💊 Pharmacies</option>
+                    <option value="custom">✏️ Custom (type below)</option>
+                </select>
+                
+                <input type="text" id="customCategory" placeholder="Custom category (e.g., pharmacy)">
+                
+                <button onclick="searchPlaces()">🔍 Search Places</button>
+            </div>
+
+            <div id="map"></div>
+        </div>
+
+        <!-- Bidding Section -->
+        <div id="crop-bidding" class="content-area">
+            <button class="btn back-btn" onclick="showMain()"><i class="fas fa-arrow-left"></i> Back to Main Menu</button>
+            <div class="section-header">
+                <h2><i class="fas fa-gavel"></i> Smart Crop Bidding Platform</h2>
+                <p>Transparent auction system with real-time price discovery</p>
+            </div>
+            
+            <!-- Smart Bidding Section -->
+            <div class="controls">
+              <h3>📈 Smart Bidding for Crops</h3>
+              <p>Farmers can list crops, buyers can place bids, and Mistral AI shows fair market prices with auto-match.</p>
+
+              <input type="text" id="cropName" placeholder="Enter crop name (e.g., Wheat)">
+              <input type="number" id="quantity" placeholder="Enter quantity (kg)">
+              <input type="number" id="minPrice" placeholder="Farmer's minimum price per kg (₹)">
+              <button onclick="placeFarmerBid()">👨‍🌾 Post Crop for Sale</button>
+
+              <hr>
+
+              <input type="text" id="buyerCrop" placeholder="Enter crop to bid for (e.g., Wheat)">
+              <input type="number" id="bidPrice" placeholder="Enter your bid price per kg (₹)">
+              <button onclick="placeBuyerBid()">🛒 Place Buyer Bid</button>
+
+              <hr>
+              <!-- Clear Data Button -->
+              <button style="background:red; color:white; padding:8px; border-radius:5px;" onclick="clearAllData()">🗑️ Clear All Data</button>
+            </div>
+
+            <div id="marketPriceResult"></div>
+            <div id="farmerBidsResult"></div>
+            <div id="buyerBidsResult"></div>
+            <div id="matchResults"></div>
+            <div id="dealResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentLanguage = 'en';
+        let chatHistory = [];
+        let isAIConnected = false;
+        let currentWeatherData = null;
+        let currentLocation = { lat: 26.7271, lon: 88.3953, name: 'Siliguri' }; // Default to Siliguri
+
+        // Marketplace Map Variables
+        let map;
+        let markersLayer;
+        let routingControl;
+
+        // Government Hub Map Variables
+        let govMap;
+        let govMarkersLayer;
+        let govRoutingControl;
+        
+        // Smart Bidding Variables
+        let farmerBids = [];
+        let buyerBids = [];
+        let deals = [];
+        let marketPrices = {}; // cache AI predictions
+
+        // Mistral AI Configuration via OpenRouter
+        const OPENROUTER_API_KEY = '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';
+        const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+        const MISTRAL_MODEL = 'mistralai/mistral-small-3.2-24b-instruct:free';
+
+        // Weather API Configuration
+        const GEOCODING_API_URL = 'https://geocoding-api.open-meteo.com/v1/search';
+        const WEATHER_API_URL = 'https://api.open-meteo.com/v1/forecast';
+
+        // Smart Bidding Functions
+        
+        // 🔹 Save to memory (since localStorage is not available in artifacts)
+        function saveData() {
+            // Data is already stored in memory variables, no need for localStorage
+        }
+
+        // 🔹 Load from memory
+        function loadData() {
+            renderFarmerBids();
+            renderBuyerBids();
+            renderDeals();
+            findMatches();
+            renderMarketPrices();
+        }
+
+        // 🔹 Clear all data
+        function clearAllData() {
+            if (!confirm("⚠️ Are you sure you want to clear all bids, deals, and prices?")) return;
+
+            farmerBids = [];
+            buyerBids = [];
+            deals = [];
+            marketPrices = {};
+
+            renderFarmerBids();
+            renderBuyerBids();
+            renderDeals();
+            findMatches();
+            document.getElementById("marketPriceResult").innerHTML = "";
+        }
+
+        // 🔹 Farmer posts crop
+        async function placeFarmerBid() {
+            let crop = document.getElementById("cropName").value.trim();
+            let qty = document.getElementById("quantity").value.trim();
+            let minPrice = document.getElementById("minPrice").value.trim();
+
+            if (!crop || !qty || !minPrice) {
+                alert("Please enter crop, quantity, and minimum price.");
+                return;
+            }
+
+            farmerBids.push({ id: Date.now(), crop, qty, minPrice });
+            renderFarmerBids();
+            saveData();
+
+            await fetchMarketPrice(crop);
+            findMatches();
+        }
+
+        // 🔹 Buyer places bid
+        function placeBuyerBid() {
+            let crop = document.getElementById("buyerCrop").value.trim();
+            let bidPrice = document.getElementById("bidPrice").value.trim();
+
+            if (!crop || !bidPrice) {
+                alert("Please enter crop and bid price.");
+                return;
+            }
+
+            buyerBids.push({ id: Date.now(), crop, bidPrice });
+            renderBuyerBids();
+            saveData();
+            findMatches();
+        }
+
+        // 🔹 Render farmer bids
+        function renderFarmerBids() {
+            let html = "<h4>👨‍🌾 Farmers' Crop Listings:</h4><ul>";
+            farmerBids.forEach(b => {
+                html += `<li><b>${b.crop}</b> - ${b.qty} kg - Min Price: ₹${b.minPrice}/kg</li>`;
+            });
+            html += "</ul>";
+            document.getElementById("farmerBidsResult").innerHTML = html;
+        }
+
+        // 🔹 Render buyer bids
+        function renderBuyerBids() {
+            let html = "<h4>🛒 Buyers' Bids:</h4><ul>";
+            buyerBids.forEach(b => {
+                html += `<li><b>${b.crop}</b> - Bid Price: ₹${b.bidPrice}/kg</li>`;
+            });
+            html += "</ul>";
+            document.getElementById("buyerBidsResult").innerHTML = html;
+        }
+
+        // 🔹 Render market prices
+        function renderMarketPrices() {
+            let html = "";
+            for (let crop in marketPrices) {
+                html += `<h4>📊 Market Price Prediction for ${crop}:</h4><p>${marketPrices[crop].replace(/\n/g, "<br>")}</p>`;
+            }
+            document.getElementById("marketPriceResult").innerHTML = html;
+        }
+
+        // 🔹 Fetch market price from Mistral AI
+        async function fetchMarketPrice(crop) {
+            if (marketPrices[crop]) return; // use cache
+
+            let query = `Predict the current wholesale and retail market price of ${crop} in India today. 
+                         Give approximate ₹/kg values for wholesale and retail separately.`;
+
+            try {
+                const response = await callMistralAPI(query, true);
+                marketPrices[crop] = response;
+                saveData();
+                renderMarketPrices();
+            } catch (error) {
+                console.error('Market price fetch error:', error);
+                marketPrices[crop] = `Market price data unavailable for ${crop}. Please check local markets.`;
+                renderMarketPrices();
+            }
+        }
+
+        // 🔹 Auto-Match Farmers & Buyers
+        function findMatches() {
+            let html = "<h4>✅ Auto-Match Results:</h4><ul>";
+
+            farmerBids.forEach(farmer => {
+                let farmerCrop = farmer.crop.toLowerCase();
+                let farmerMinPrice = parseFloat(farmer.minPrice);
+
+                let wholesalePrice = null;
+                if (marketPrices[farmer.crop]) {
+                    let match = marketPrices[farmer.crop].match(/wholesale.*?₹?(\d+)/i);
+                    if (match) wholesalePrice = parseFloat(match[1]);
+                }
+
+                let validBids = buyerBids.filter(b => b.crop.toLowerCase() === farmerCrop)
+                    .filter(b => parseFloat(b.bidPrice) >= farmerMinPrice &&
+                                 (!wholesalePrice || parseFloat(b.bidPrice) >= wholesalePrice));
+
+                if (validBids.length > 0) {
+                    let bestBid = validBids.reduce((prev, curr) =>
+                        parseFloat(curr.bidPrice) > parseFloat(prev.bidPrice) ? curr : prev);
+                    html += `<li>👨‍🌾 Farmer selling <b>${farmer.crop}</b> (Min ₹${farmerMinPrice}/kg) → 
+                             🛒 Best Buyer offers ₹${bestBid.bidPrice}/kg 
+                             <button onclick="confirmDeal(${farmer.id}, ${bestBid.id})">🤝 Confirm Deal</button></li>`;
+                } else {
+                    html += `<li>👨‍🌾 Farmer selling <b>${farmer.crop}</b> → No valid buyer bids yet ❌</li>`;
+                }
+            });
+
+            html += "</ul>";
+            document.getElementById("matchResults").innerHTML = html;
+        }
+
+        // 🔹 Confirm deal
+        function confirmDeal(farmerId, buyerId) {
+            let farmer = farmerBids.find(f => f.id === farmerId);
+            let buyer = buyerBids.find(b => b.id === buyerId);
+
+            if (!farmer || !buyer) return;
+
+            deals.push({
+                crop: farmer.crop,
+                qty: farmer.qty,
+                price: buyer.bidPrice,
+                farmerMin: farmer.minPrice
+            });
+
+            farmerBids = farmerBids.filter(f => f.id !== farmerId);
+            buyerBids = buyerBids.filter(b => b.id !== buyerId);
+
+            renderFarmerBids();
+            renderBuyerBids();
+            findMatches();
+            renderDeals();
+            saveData();
+        }
+
+        // 🔹 Render deals
+        function renderDeals() {
+            let html = "<h4>🤝 Confirmed Deals:</h4><ul>";
+            deals.forEach(d => {
+                html += `<li><b>${d.crop}</b> - Qty: ${d.qty} kg - Final Price: ₹${d.price}/kg (Farmer Min: ₹${d.farmerMin}/kg)</li>`;
+            });
+            html += "</ul>";
+            document.getElementById("dealResults").innerHTML = html;
+        }
+
+        // Initialize background animation
+        function initBackgroundAnimation() {
+            const bgAnimation = document.getElementById('bgAnimation');
+            
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.width = particle.style.height = Math.random() * 8 + 4 + 'px';
+                particle.style.animationDuration = Math.random() * 10 + 10 + 's';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                bgAnimation.appendChild(particle);
+            }
+        }
+
+        // Initialize marketplace map
+        function initMarketplaceMap() {
+            if (!map) {
+                // Initialize map centered on India
+                map = L.map('map').setView([22.9734, 78.6569], 6);
+
+                // Free OpenStreetMap tiles
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(map);
+
+                markersLayer = L.layerGroup().addTo(map);
+            }
+        }
+
+        // Initialize government hub map
+        function initGovMap() {
+            if (!govMap) {
+                // Initialize map centered on India
+                govMap = L.map('govMap').setView([22.9734, 78.6569], 6);
+
+                // Free OpenStreetMap tiles
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap'
+                }).addTo(govMap);
+
+                govMarkersLayer = L.layerGroup().addTo(govMap);
+            }
+        }
+
+        // Navigation functions
+        function showSection(sectionId) {
+            document.getElementById('main-menu').style.display = 'none';
+            document.querySelectorAll('.content-area').forEach(area => {
+                area.classList.remove('active');
+            });
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Load weather data when weather section is shown
+            if (sectionId === 'weather') {
+                loadWeatherData();
+            }
+            
+            // Initialize maps when sections are shown
+            if (sectionId === 'marketplace') {
+                setTimeout(() => {
+                    initMarketplaceMap();
+                }, 100);
+            }
+            
+            if (sectionId === 'schemes') {
+                setTimeout(() => {
+                    initGovMap();
+                }, 100);
+            }
+            
+            // Load bidding data when smart bidding section is shown
+            if (sectionId === 'crop-bidding') {
+                loadData();
+            }
+        }
+
+        function showMain() {
+            document.getElementById('main-menu').style.display = 'grid';
+            document.querySelectorAll('.content-area').forEach(area => {
+                area.classList.remove('active');
+            });
+        }
+
+        // Enhanced Banking Functions
+        
+        // Helper to create collapsible accordions
+        function createAccordion(content) {
+            // Split response by banks if possible
+            let lines = content.split("\n").filter(l => l.trim() !== "");
+            let html = "";
+            let currentBank = null;
+            let bankDetails = "";
+
+            function closePanel() {
+                if (currentBank) {
+                    html += `
+                        <button class="accordion">${currentBank}</button>
+                        <div class="panel"><p>${bankDetails}</p></div>
+                    `;
+                }
+            }
+
+            lines.forEach(line => {
+                if (/SBI|State Bank|PNB|Punjab National Bank|NABARD|Bank|Cooperative|Union Bank|ICICI|HDFC/i.test(line)) {
+                    closePanel();
+                    currentBank = line.trim();
+                    bankDetails = "";
+                } else {
+                    bankDetails += line + "<br>";
+                }
+            });
+
+            closePanel();
+            return html;
+        }
+
+        // Fetch loan schemes (Mistral AI) + Nearby banks (Overpass API)
+        async function fetchLoansAndBanks() {
+            let location = document.getElementById("bankState").value.trim();
+            if (!location) {
+                alert("Please enter your state or city first.");
+                return;
+            }
+
+            document.getElementById("bankingResult").innerHTML = "<p>⏳ Fetching details, please wait...</p>";
+
+            try {
+                // ---------- STEP 1: Ask Mistral AI for loan schemes ----------
+                let prompt = `List all farmer loan schemes available in ${location}. 
+                Group them by bank (SBI, PNB, NABARD, cooperative banks, etc.) with details: 
+                scheme name, eligibility, interest rates, repayment terms, and benefits. 
+                Include contact information and application process where available.`;
+
+                let aiResponse = await callMistralAPI(prompt, true);
+                let accordionHTML = createAccordion(aiResponse);
+                let loanSchemesHTML = `<h4>🏦 Loan Schemes in ${location}:</h4>${accordionHTML}`;
+
+                // ---------- STEP 2: Get nearby banks (using Overpass API) ----------
+                let geoResp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}, India`);
+                let geoData = await geoResp.json();
+                
+                let banksHTML = "<h4>🔍 Nearby Banks (within 5 km):</h4>";
+                
+                if (geoData.length === 0) {
+                    banksHTML += "<p>⌐ Could not find nearby banks (location not found).</p>";
+                } else {
+                    let lat = geoData[0].lat, lon = geoData[0].lon;
+
+                    let query = `
+                        [out:json];
+                        (
+                            node["amenity"="bank"](around:5000,${lat},${lon});
+                            way["amenity"="bank"](around:5000,${lat},${lon});
+                            relation["amenity"="bank"](around:5000,${lat},${lon});
+                        );
+                        out center;
+                    `;
+
+                    let overpassResp = await fetch("https://overpass-api.de/api/interpreter", {
+                        method: "POST",
+                        body: query
+                    });
+                    let overpassData = await overpassResp.json();
+
+                    banksHTML += "<div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-top: 15px;'>";
+                    
+                    if (overpassData.elements.length > 0) {
+                        overpassData.elements.forEach(el => {
+                            let name = el.tags?.name || "Unnamed Bank";
+                            let address = [];
+                            if (el.tags["addr:street"]) address.push(el.tags["addr:street"]);
+                            if (el.tags["addr:city"]) address.push(el.tags["addr:city"]);
+                            if (el.tags["addr:state"]) address.push(el.tags["addr:state"]);
+                            if (el.tags["addr:postcode"]) address.push(el.tags["addr:postcode"]);
+                            let addressStr = address.length > 0 ? address.join(", ") : "Address not available";
+                            let phone = el.tags?.phone || "Contact not available";
+
+                            banksHTML += `
+                                <div class="card" style="margin-bottom: 10px;">
+                                    <h5 style="color: #667eea; margin-bottom: 10px;">${name}</h5>
+                                    <p><i class="fas fa-map-marker-alt"></i> ${addressStr}</p>
+                                    <p><i class="fas fa-phone"></i> ${phone}</p>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        banksHTML += "<div class='card'><p>No nearby banks found within 5km radius.</p></div>";
+                    }
+                    banksHTML += "</div>";
+                }
+
+                // ---------- STEP 3: Show both results ----------
+                document.getElementById("bankingResult").innerHTML = loanSchemesHTML + banksHTML;
+
+                // Enable accordion toggling
+                let acc = document.getElementsByClassName("accordion");
+                for (let i = 0; i < acc.length; i++) {
+                    acc[i].addEventListener("click", function() {
+                        this.classList.toggle("active");
+                        let panel = this.nextElementSibling;
+                        if (panel.style.display === "block") {
+                            panel.style.display = "none";
+                        } else {
+                            panel.style.display = "block";
+                        }
+                    });
+                }
+
+            } catch (error) {
+                console.error('Banking information fetch error:', error);
+                document.getElementById("bankingResult").innerHTML = `
+                    <div class="error-message">
+                        <h4>⚠️ Unable to fetch live data</h4>
+                        <p>Here are some popular agricultural loan schemes in India:</p>
+                    </div>
+                    
+                    <button class="accordion">🏦 State Bank of India (SBI)</button>
+                    <div class="panel">
+                        <p><strong>Kisan Credit Card:</strong> Up to ₹3 lakh at 7% interest rate<br>
+                        <strong>SBI Crop Loan:</strong> Flexible repayment based on crop cycle<br>
+                        <strong>Eligibility:</strong> Farmers with land records<br>
+                        <strong>Contact:</strong> Visit nearest SBI branch or call 1800-11-2211</p>
+                    </div>
+                    
+                    <button class="accordion">🏦 Punjab National Bank (PNB)</button>
+                    <div class="panel">
+                        <p><strong>PNB Kisan Credit Card:</strong> Competitive interest rates<br>
+                        <strong>Agricultural Gold Loan:</strong> Against gold ornaments<br>
+                        <strong>Eligibility:</strong> Individual farmers and farmer groups<br>
+                        <strong>Contact:</strong> Visit nearest PNB branch or call 1800-180-2222</p>
+                    </div>
+                    
+                    <button class="accordion">🌾 NABARD</button>
+                    <div class="panel">
+                        <p><strong>Farmer Producer Organizations:</strong> Support for FPOs<br>
+                        <strong>Rural Infrastructure:</strong> Development fund<br>
+                        <strong>Eligibility:</strong> Registered farmer groups<br>
+                        <strong>Contact:</strong> Visit NABARD regional office</p>
+                    </div>
+                `;
+
+                // Enable accordion for fallback content
+                let acc = document.getElementsByClassName("accordion");
+                for (let i = 0; i < acc.length; i++) {
+                    acc[i].addEventListener("click", function() {
+                        this.classList.toggle("active");
+                        let panel = this.nextElementSibling;
+                        if (panel.style.display === "block") {
+                            panel.style.display = "none";
+                        } else {
+                            panel.style.display = "block";
+                        }
+                    });
+                }
+            }
+        }
+
+        // Common geocoding function
+        async function geocode(place) {
+            try {
+                let resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(place)}, India`);
+                let data = await resp.json();
+                if (data.length > 0) {
+                    return { lat: data[0].lat, lon: data[0].lon };
+                }
+                return null;
+            } catch (error) {
+                console.error('Geocoding error:', error);
+                return null;
+            }
+        }
+
+        // Government Hub Functions
+        async function searchGovPlaces() {
+            let location = document.getElementById("govLocationInput").value;
+            let category = document.getElementById("govCategorySelect").value;
+            let customCat = document.getElementById("govCustomCategory").value.trim();
+
+            if (!location) {
+                alert("Please enter a location to search in");
+                return;
+            }
+
+            if (category === "custom" && customCat) {
+                category = customCat.toLowerCase();
+            }
+
+            try {
+                let geoData = await geocode(location);
+                if (!geoData) {
+                    alert("Search location not found!");
+                    return;
+                }
+
+                let lat = geoData.lat;
+                let lon = geoData.lon;
+
+                // Center on search area
+                govMap.setView([lat, lon], 14);
+
+                govMarkersLayer.clearLayers();
+                if (govRoutingControl) govMap.removeControl(govRoutingControl);
+
+                // Overpass API query (5 km radius)
+                let query = `
+                    [out:json];
+                    (
+                        node["amenity"="${category}"](around:5000,${lat},${lon});
+                        way["amenity"="${category}"](around:5000,${lat},${lon});
+                        relation["amenity"="${category}"](around:5000,${lat},${lon});
+                    );
+                    out center;
+                `;
+                
+                let overpassResp = await fetch("https://overpass-api.de/api/interpreter", {
+                    method: "POST",
+                    body: query
+                });
+                let overpassData = await overpassResp.json();
+
+                if (overpassData.elements.length === 0) {
+                    alert("No nearby " + category + " found!");
+                    return;
+                }
+
+                overpassData.elements.forEach(el => {
+                    let lat2 = el.lat || el.center?.lat;
+                    let lon2 = el.lon || el.center?.lon;
+                    let name = el.tags?.name || `${category} (no name)`;
+
+                    if (lat2 && lon2) {
+                        let marker = L.marker([lat2, lon2]).addTo(govMarkersLayer)
+                            .bindPopup(`<b>${name}</b><br><button onclick="govRouteTo(${lat2}, ${lon2})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">🚗 Navigate</button>`);
+                    }
+                });
+            } catch (error) {
+                console.error('Government search error:', error);
+                alert('Error searching for places. Please try again.');
+            }
+        }
+
+        async function govRouteTo(destLat, destLon) {
+            if (govRoutingControl) {
+                govMap.removeControl(govRoutingControl);
+            }
+
+            let startLocation = document.getElementById("govStartLocation").value;
+            let startCoords;
+
+            if (startLocation) {
+                startCoords = await geocode(startLocation);
+                if (!startCoords) {
+                    alert("Starting location not found!");
+                    return;
+                }
+            } else {
+                alert("Please enter your starting location.");
+                return;
+            }
+
+            govRoutingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(startCoords.lat, startCoords.lon),
+                    L.latLng(destLat, destLon)
+                ],
+                routeWhileDragging: true,
+                showAlternatives: true,
+                fitSelectedRoutes: true,
+                collapsible: true
+            }).addTo(govMap);
+        }
+
+        // Government schemes fetching function
+        async function fetchSchemes() {
+            let state = document.getElementById("stateSelect").value;
+            let customQuery = document.getElementById("customQuery").value.trim();
+            let query;
+
+            if (state === "all" && !customQuery) {
+                query = "List the latest major government welfare schemes for farmers in India (national level) with eligibility criteria and application process.";
+            } else if (state !== "all" && !customQuery) {
+                query = `List the latest government welfare schemes for farmers in ${state}, plus major national schemes, with eligibility criteria and application process.`;
+            } else if (state === "all" && customQuery) {
+                query = `Find specific government schemes in India for farmers related to ${customQuery}, including eligibility and how to apply.`;
+            } else {
+                query = `Find government schemes for farmers in ${state} related to ${customQuery}, and also mention relevant national schemes, with eligibility and application details.`;
+            }
+
+            document.getElementById("schemesResult").innerHTML = '<div class="loading-spinner"></div> Fetching government schemes information...';
+
+            try {
+                const response = await callMistralAPI(query, true);
+                document.getElementById("schemesResult").innerHTML = `<h4>📋 Available Schemes:</h4><div>${formatMessage(response)}</div>`;
+            } catch (error) {
+                console.error('Error fetching schemes:', error);
+                document.getElementById("schemesResult").innerHTML = `
+                    <h4>📋 Popular Government Schemes for Farmers:</h4>
+                    <div>
+                        <p><strong>🌾 PM-KISAN Samman Nidhi:</strong> ₹6,000 per year direct income support to farmers</p>
+                        <p><strong>💳 Kisan Credit Card:</strong> Agricultural loans up to ₹3 lakh at subsidized rates</p>
+                        <p><strong>🛡️ Pradhan Mantri Fasal Bima Yojana:</strong> Comprehensive crop insurance scheme</p>
+                        <p><strong>🚜 Sub-Mission on Agricultural Mechanization:</strong> 40-50% subsidy on farm machinery</p>
+                        <p><strong>🏠 Pradhan Mantri Awas Yojana-Gramin:</strong> Housing support for rural families</p>
+                        <p>Please try again or contact your local agricultural office for detailed information.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Get specific scheme details
+        async function getSchemeDetails(schemeName) {
+            const query = `Provide detailed information about the ${schemeName} government scheme for farmers in India, including eligibility criteria, application process, benefits, required documents, and how to apply.`;
+            
+            document.getElementById("schemesResult").innerHTML = '<div class="loading-spinner"></div> Getting detailed scheme information...';
+            
+            try {
+                const response = await callMistralAPI(query, true);
+                document.getElementById("schemesResult").innerHTML = `<h4>📋 ${schemeName} - Detailed Information:</h4><div>${formatMessage(response)}</div>`;
+            } catch (error) {
+                console.error('Error getting scheme details:', error);
+                document.getElementById("schemesResult").innerHTML = `<h4>Error loading scheme details</h4><p>Please try again or visit the official government website for information about ${schemeName}.</p>`;
+            }
+        }
+
+        // Marketplace Functions
+        async function searchPlaces() {
+            let location = document.getElementById("locationInput").value;
+            let category = document.getElementById("categorySelect").value;
+            let customCat = document.getElementById("customCategory").value.trim();
+
+            if (!location) {
+                alert("Please enter a location to search in");
+                return;
+            }
+
+            if (category === "custom" && customCat) {
+                category = customCat.toLowerCase();
+            }
+
+            try {
+                let geoData = await geocode(location);
+                if (!geoData) {
+                    alert("Search location not found!");
+                    return;
+                }
+
+                let lat = geoData.lat;
+                let lon = geoData.lon;
+
+                // Center on search area
+                map.setView([lat, lon], 14);
+
+                markersLayer.clearLayers();
+                if (routingControl) map.removeControl(routingControl);
+
+                // Overpass API query (5 km radius)
+                let query = `
+                    [out:json];
+                    (
+                        node["amenity"="${category}"](around:5000,${lat},${lon});
+                        way["amenity"="${category}"](around:5000,${lat},${lon});
+                        relation["amenity"="${category}"](around:5000,${lat},${lon});
+                    );
+                    out center;
+                `;
+                
+                let overpassResp = await fetch("https://overpass-api.de/api/interpreter", {
+                    method: "POST",
+                    body: query
+                });
+                let overpassData = await overpassResp.json();
+
+                if (overpassData.elements.length === 0) {
+                    alert("No nearby " + category + " found!");
+                    return;
+                }
+
+                overpassData.elements.forEach(el => {
+                    let lat2 = el.lat || el.center?.lat;
+                    let lon2 = el.lon || el.center?.lon;
+                    let name = el.tags?.name || `${category} (no name)`;
+
+                    if (lat2 && lon2) {
+                        let marker = L.marker([lat2, lon2]).addTo(markersLayer)
+                            .bindPopup(`<b>${name}</b><br><button onclick="routeTo(${lat2}, ${lon2})" style="padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">🚗 Navigate</button>`);
+                    }
+                });
+            } catch (error) {
+                console.error('Search error:', error);
+                alert('Error searching for places. Please try again.');
+            }
+        }
+
+        async function routeTo(destLat, destLon) {
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+
+            let startLocation = document.getElementById("startLocation").value;
+            let startCoords;
+
+            if (startLocation) {
+                startCoords = await geocode(startLocation);
+                if (!startCoords) {
+                    alert("Starting location not found!");
+                    return;
+                }
+            } else {
+                alert("Please enter your starting location.");
+                return;
+            }
+
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(startCoords.lat, startCoords.lon),
+                    L.latLng(destLat, destLon)
+                ],
+                routeWhileDragging: true,
+                showAlternatives: true,
+                fitSelectedRoutes: true,
+                collapsible: true
+            }).addTo(map);
+        }
+
+        // Mistral AI Functions
+        async function callMistralAPI(userMessage, isSystemQuery = false) {
+            const userLocation = document.getElementById('userLocation')?.value || 'India';
+            const language = document.getElementById('chatLanguage')?.value || 'en';
+            
+            let systemPrompt = `You are an expert agricultural AI assistant with deep knowledge about Indian agriculture, farming practices, crops, weather, rural development, and government schemes. You specialize in:
+
+1. Crop cultivation, diseases, and pest management
+2. Fertilizers, irrigation, and soil health
+3. Weather analysis and agricultural recommendations
+4. Indian government schemes and subsidies for farmers
+5. Market prices, trends, and agricultural economics
+6. Rural banking, loans, and financial services
+7. Organic farming, sustainable agriculture
+8. Agricultural technology and equipment
+
+Guidelines:
+- Provide practical, actionable advice tailored to Indian farming conditions
+- Consider local climate, soil types, and regional practices
+- Include specific government scheme details when relevant
+- Mention approximate costs, timelines, and processes
+- Be multilingual and culturally aware
+- Focus on sustainability and farmer welfare
+- Provide region-specific advice when location is mentioned
+
+User's location: ${userLocation}
+Preferred language: ${language}
+
+Respond in a helpful, professional manner with specific details and practical recommendations.`;
+
+            const messages = [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userMessage }
+            ];
+
+            try {
+                const response = await fetch(OPENROUTER_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                        'HTTP-Referer': window.location.href,
+                        'X-Title': 'AgriConnect AI Assistant'
+                    },
+                    body: JSON.stringify({
+                        model: MISTRAL_MODEL,
+                        messages: messages,
+                        temperature: 0.7,
+                        max_tokens: 1000,
+                        top_p: 1,
+                        frequency_penalty: 0,
+                        presence_penalty: 0
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.choices[0].message.content;
+            } catch (error) {
+                console.error('Mistral API error:', error);
+                return getFallbackResponse(userMessage);
+            }
+        }
+
+        function getFallbackResponse(userMessage) {
+            const fallbackResponses = {
+                'crop diseases': 'Common crop diseases in India include blast in rice, late blight in potato, and powdery mildew in wheat. Use fungicides like copper sulfate and maintain proper field hygiene.',
+                'fertilizer': 'For balanced nutrition, use NPK fertilizers in ratio 4:2:1 for most crops. Apply organic manure like cow dung or compost before sowing.',
+                'irrigation': 'Drip irrigation saves 30-50% water compared to flood irrigation. Install it with government subsidy of 55% under PMKSY scheme.',
+                'pest control': 'Use IPM (Integrated Pest Management) approach. Combine biological control with neem oil, mechanical traps, and targeted pesticides.',
+                'market prices': 'Check MSP rates on eNAM portal. Current wheat MSP is ₹2,125/quintal, rice ₹2,183/quintal. Prices vary by region and quality.',
+                'government schemes': 'Major schemes: PM-KISAN (₹6,000/year), Kisan Credit Card (up to ₹3 lakh), PMFBY crop insurance, and agricultural machinery subsidies.',
+                'banking': 'Major agricultural loan providers: SBI, PNB, NABARD. Kisan Credit Card offers loans up to ₹3 lakh at 7% interest rate with flexible repayment.',
+                'default': 'I apologize, but I am currently experiencing connectivity issues. Please try again in a moment or contact your local agricultural extension officer for immediate assistance.'
+            };
+
+            for (let keyword in fallbackResponses) {
+                if (userMessage.toLowerCase().includes(keyword)) {
+                    return fallbackResponses[keyword];
+                }
+            }
+            return fallbackResponses['default'];
+        }
+
+        // Chat Functions
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const chatInput = document.getElementById('chatInput');
+            const message = chatInput.value.trim();
+            
+            if (!message) return;
+
+            // Add user message to chat
+            addMessageToChat(message, 'user');
+            chatInput.value = '';
+            
+            // Show typing indicator
+            showTypingIndicator();
+            
+            try {
+                const response = await callMistralAPI(message);
+                removeTypingIndicator();
+                addMessageToChat(response, 'bot');
+                
+                // Update AI status
+                updateAIStatus(true);
+            } catch (error) {
+                removeTypingIndicator();
+                addMessageToChat('Sorry, I am experiencing connectivity issues. Please try again.', 'bot');
+                updateAIStatus(false);
+            }
+        }
+
+        function quickChat(topic) {
+            document.getElementById('chatInput').value = `Tell me about ${topic} in Indian agriculture`;
+            sendMessage();
+        }
+
+        function addMessageToChat(message, sender) {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            if (sender === 'bot') {
+                messageDiv.innerHTML = `<strong>Mistral AI:</strong> ${formatMessage(message)}`;
+            } else {
+                messageDiv.innerHTML = message;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function formatMessage(message) {
+            // Convert markdown-style formatting to HTML
+            return message
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function showTypingIndicator() {
+            const chatMessages = document.getElementById('chatMessages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message bot-message typing-indicator';
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <strong>Mistral AI:</strong> 
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+                Thinking...
+            `;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        function updateAIStatus(isOnline) {
+            const aiStatus = document.getElementById('aiStatus');
+            if (isOnline) {
+                aiStatus.className = 'ai-status online';
+                aiStatus.innerHTML = '🤖 Mistral AI Connected';
+            } else {
+                aiStatus.className = 'ai-status offline';
+                aiStatus.innerHTML = '🤖 Mistral AI Offline';
+            }
+        }
+
+        function onLanguageChange() {
+            const language = document.getElementById('chatLanguage').value;
+            currentLanguage = language;
+            
+            // Add language change message to chat
+            const languageNames = {
+                'en': 'English',
+                'hi': 'हिन्दी (Hindi)',
+                'bn': 'বাংলা (Bengali)',
+                'te': 'తెలుగు (Telugu)',
+                'ta': 'தமிழ் (Tamil)',
+                'mr': 'मराठी (Marathi)',
+                'gu': 'ગુજરાતી (Gujarati)',
+                'pa': 'ਪੰਜਾਬੀ (Punjabi)'
+            };
+            
+            addMessageToChat(`Language changed to ${languageNames[language]}. I can now respond in your preferred language.`, 'bot');
+        }
+
+        // Weather Functions
+        async function loadWeatherData() {
+            const city = document.getElementById('cityInput').value || 'Siliguri';
+            await getWeatherData(city);
+        }
+
+        async function updateWeatherLocation() {
+            const city = document.getElementById('cityInput').value;
+            if (city) {
+                await getWeatherData(city);
+            }
+        }
+
+        async function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    await getWeatherDataByCoords(lat, lon);
+                }, (error) => {
+                    console.error('Geolocation error:', error);
+                    alert('Unable to get your location. Please enter a city name manually.');
+                });
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+        }
+
+        async function getWeatherData(city) {
+            try {
+                // First geocode the city
+                const geocodeResponse = await fetch(`${GEOCODING_API_URL}?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
+                const geocodeData = await geocodeResponse.json();
+                
+                if (!geocodeData.results || geocodeData.results.length === 0) {
+                    throw new Error('City not found');
+                }
+                
+                const location = geocodeData.results[0];
+                await getWeatherDataByCoords(location.latitude, location.longitude, location.name);
+            } catch (error) {
+                console.error('Weather error:', error);
+                displayWeatherError('Unable to fetch weather data. Please try again.');
+            }
+        }
+
+        async function getWeatherDataByCoords(lat, lon, cityName = null) {
+            try {
+                const weatherResponse = await fetch(
+                    `${WEATHER_API_URL}?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,visibility&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`
+                );
+                const weatherData = await weatherResponse.json();
+                
+                currentWeatherData = weatherData;
+                currentLocation = { lat, lon, name: cityName || `${lat}, ${lon}` };
+                
+                displayWeatherData(weatherData, cityName);
+                await generateWeatherRecommendations(weatherData);
+            } catch (error) {
+                console.error('Weather fetch error:', error);
+                displayWeatherError('Unable to fetch weather data. Please try again.');
+            }
+        }
+
+        function displayWeatherData(data, cityName = null) {
+            const current = data.current_weather;
+            const hourly = data.hourly;
+            
+            // Update weather display
+            document.getElementById('weatherLocation').textContent = cityName || currentLocation.name;
+            document.getElementById('weatherTemp').textContent = `${Math.round(current.temperature)}°C`;
+            document.getElementById('weatherDescription').textContent = getWeatherDescription(current.weathercode);
+            document.getElementById('weatherIcon').textContent = getWeatherIcon(current.weathercode);
+            
+            // Update weather details
+            document.getElementById('feelsLike').textContent = `${Math.round(current.temperature)}°C`;
+            document.getElementById('humidity').textContent = `${hourly.relative_humidity_2m[0]}%`;
+            document.getElementById('windSpeed').textContent = `${Math.round(current.windspeed)} km/h`;
+            document.getElementById('visibility').textContent = `${Math.round(hourly.visibility[0] / 1000)} km`;
+        }
+
+        function displayWeatherError(message) {
+            document.getElementById('weatherLocation').textContent = 'Error';
+            document.getElementById('weatherTemp').textContent = '--°C';
+            document.getElementById('weatherDescription').textContent = message;
+            document.getElementById('weatherIcon').textContent = '⌐';
+        }
+
+        function getWeatherIcon(weatherCode) {
+            const weatherIcons = {
+                0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
+                45: '🌫️', 48: '🌫️',
+                51: '🌦️', 53: '🌦️', 55: '🌦️',
+                61: '🌧️', 63: '🌧️', 65: '🌧️',
+                71: '❄️', 73: '❄️', 75: '❄️',
+                95: '⛈️', 96: '⛈️', 99: '⛈️'
+            };
+            return weatherIcons[weatherCode] || '🌤️';
+        }
+
+        function getWeatherDescription(weatherCode) {
+            const descriptions = {
+                0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+                45: 'Fog', 48: 'Depositing rime fog',
+                51: 'Light drizzle', 53: 'Moderate drizzle', 55: 'Dense drizzle',
+                61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
+                71: 'Slight snow', 73: 'Moderate snow', 75: 'Heavy snow',
+                95: 'Thunderstorm', 96: 'Thunderstorm with hail', 99: 'Thunderstorm with heavy hail'
+            };
+            return descriptions[weatherCode] || 'Unknown weather';
+        }
+
+        async function generateWeatherRecommendations(weatherData) {
+            const current = weatherData.current_weather;
+            const query = `Based on current weather conditions: Temperature ${current.temperature}°C, wind speed ${current.windspeed} km/h, weather code ${current.weathercode}. Provide specific agricultural recommendations for farmers including:
+1. Crop care activities suitable for today
+2. Irrigation recommendations  
+3. Disease/pest prevention measures
+4. Field work suggestions
+5. Harvesting considerations if applicable
+
+Location: ${currentLocation.name}. Keep response concise and actionable.`;
+
+            document.getElementById('recommendationContent').innerHTML = '<div class="loading-spinner"></div> Generating AI recommendations...';
+
+            try {
+                const recommendations = await callMistralAPI(query, true);
+                document.getElementById('recommendationContent').innerHTML = formatMessage(recommendations);
+            } catch (error) {
+                document.getElementById('recommendationContent').innerHTML = `
+                    <div class="recommendation-item">
+                        <strong>General Recommendations:</strong><br>
+                        • Monitor weather forecasts regularly<br>
+                        • Adjust irrigation based on temperature and humidity<br>
+                        • Check crops for weather-related stress<br>
+                        • Plan field activities during suitable weather windows
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initBackgroundAnimation();
+            loadWeatherData();
+            updateAIStatus(true);
+        });
+
+        // Error handling for uncaught errors
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+        });
+    </script>
+</body>
+</html>
